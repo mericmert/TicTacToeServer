@@ -4,12 +4,15 @@ using System.Net;
 using System.Diagnostics.Eventing.Reader;
 using System.Text;
 using System.DirectoryServices;
+using System.Threading;
 
 namespace TicTacToeServer
 {
     public partial class Form1 : Form
     {
         const int MAX_NUMBER_OF_PLAYERS = 2;
+
+        static Mutex mutex = new Mutex();
 
         Socket serverSocket;
         Queue<Socket> clientSocketsQueue;
@@ -18,7 +21,7 @@ namespace TicTacToeServer
 
 
         bool isServerListening;
-        bool isClientWaitingToJoin;
+        int numberOfClientWaiting;
 
         public struct Player
         {
@@ -49,7 +52,7 @@ namespace TicTacToeServer
 
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
             isServerListening = false;
-            isClientWaitingToJoin = false;
+            numberOfClientWaiting = 0;
 
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientSocketsQueue = new Queue<Socket>();
@@ -102,17 +105,22 @@ namespace TicTacToeServer
             string clientIPString = clientIP.ToString();
 
             Byte[] buffer = new Byte[128];
-            while (isClientWaitingToJoin) {
+            while (numberOfClientWaiting > 0) {
                 try
                 {
                     clientSocket.Receive(buffer);
                     string messageFromClient = Encoding.Default.GetString(buffer);
                     messageFromClient.Trim('\0');
                     string[] token = messageFromClient.Split(':'); //format is "action:payload"
+
                     if (token[0] == "join")
                     {
-                        isClientWaitingToJoin = false;
-                        Thread joinThread = new Thread(() => Join(token[1]));
+                        /* Atomic Operation */
+                        mutex.WaitOne();
+                        numberOfClientWaiting--;
+                        mutex.ReleaseMutex();
+                        /********************/
+                        Thread joinThread = new Thread(() => Join(token[1], clientSocket));
                         joinThread.Start();
                     }
                     else if (token[0] == "leave")
@@ -130,8 +138,33 @@ namespace TicTacToeServer
             
         }
 
-        private void Join(String username)
+        private bool checkUsername(String username)
         {
+            foreach (Player player in activePlayers)
+            {
+                if (player.username == username) return false;
+            }
+            return true;
+        }
+
+
+        private void Join(String username, Socket clientSocket)
+        {
+            if (checkUsername(username))
+            {
+                byte[] buffer = Encoding.Default.GetBytes("200:" + username + " has connected to the server!\n");
+                clientSocket.Send(buffer);
+            }
+            else
+            {
+                byte[] buffer = Encoding.Default.GetBytes("401:The username is not unique!\n");
+                clientSocket.Send(buffer);
+
+            }
+
+
+
+
             log_textbox.AppendText($"{username} is connected!\n");
         }
 
@@ -164,8 +197,13 @@ namespace TicTacToeServer
                         log_textbox.AppendText(clientIPString + " has connected to the server!\n");
                         byte[] buffer = Encoding.Default.GetBytes("200:Connection is OK!");
                         newClient.Send(buffer);
-                        
-                        isClientWaitingToJoin = true;
+
+                        /* Atomic Operation */
+                        mutex.WaitOne();
+                        numberOfClientWaiting +=1;
+                        mutex.ReleaseMutex();
+                        /********************/
+
                         Thread waitPlayerToJoin = new Thread(() => WaitPlayerToJoin(newClient));
                         waitPlayerToJoin.Start();
                     }
