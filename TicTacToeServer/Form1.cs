@@ -3,16 +3,43 @@ using System.Collections.Generic;
 using System.Net;
 using System.Diagnostics.Eventing.Reader;
 using System.Text;
+using System.DirectoryServices;
 
 namespace TicTacToeServer
 {
     public partial class Form1 : Form
     {
-        const int MAX_NUMBER_OF_PLAYERS = 4;
+        const int MAX_NUMBER_OF_PLAYERS = 2;
+
         Socket serverSocket;
         Queue<Socket> clientSocketsQueue;
+        List<Player> activePlayers;
+
+
 
         bool isServerListening;
+        bool isClientWaitingToJoin;
+
+        public struct Player
+        {
+            public string username;
+            public int gamesPlayed;
+            public int win;
+            public int draw;
+            public int loss;
+            public int points;
+
+            public Player(string name)
+            {
+                this.username = name;
+                this.gamesPlayed = 0;
+                this.win = 0;
+                this.draw = 0;
+                this.loss = 0;
+                this.points = 0;
+            }
+
+        }
 
 
         public Form1()
@@ -22,9 +49,11 @@ namespace TicTacToeServer
 
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
             isServerListening = false;
+            isClientWaitingToJoin = false;
 
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientSocketsQueue = new Queue<Socket>();
+            activePlayers = new List<Player>();
 
             InitializeComponent();
         }
@@ -67,6 +96,45 @@ namespace TicTacToeServer
             }
         }
 
+        private void WaitPlayerToJoin(Socket clientSocket)
+        {
+            IPAddress clientIP = ((IPEndPoint)clientSocket.RemoteEndPoint).Address;
+            string clientIPString = clientIP.ToString();
+
+            Byte[] buffer = new Byte[128];
+            while (isClientWaitingToJoin) {
+                try
+                {
+                    clientSocket.Receive(buffer);
+                    string messageFromClient = Encoding.Default.GetString(buffer);
+                    messageFromClient.Trim('\0');
+                    string[] token = messageFromClient.Split(':'); //format is "action:payload"
+                    if (token[0] == "join")
+                    {
+                        isClientWaitingToJoin = false;
+                        Thread joinThread = new Thread(() => Join(token[1]));
+                        joinThread.Start();
+                    }
+                    else if (token[0] == "leave")
+                    {
+                        clientSocket.Close();
+                        log_textbox.AppendText(clientIPString + " has disconnected from server!\n");
+                    }
+                }
+                catch (Exception e)
+                {
+                    log_textbox.AppendText(clientIPString +" could not join to the server!\n");
+                }
+
+            }
+            
+        }
+
+        private void Join(String username)
+        {
+            log_textbox.AppendText($"{username} is connected!\n");
+        }
+
         private void Accept()
         {
             while (isServerListening)
@@ -96,8 +164,10 @@ namespace TicTacToeServer
                         log_textbox.AppendText(clientIPString + " has connected to the server!\n");
                         byte[] buffer = Encoding.Default.GetBytes("200:Connection is OK!");
                         newClient.Send(buffer);
-
-                        //Thread joinThread = new Thread();
+                        
+                        isClientWaitingToJoin = true;
+                        Thread waitPlayerToJoin = new Thread(() => WaitPlayerToJoin(newClient));
+                        waitPlayerToJoin.Start();
                     }
                 }
                 catch{}
