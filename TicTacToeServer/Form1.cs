@@ -57,10 +57,12 @@ namespace TicTacToeServer
             Control.CheckForIllegalCrossThreadCalls = false;
 
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
-            isServerListening = false;
 
             clientSocketArray = new List<Socket>();
             activePlayers = new List<Player>();
+
+            isServerListening = false;
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             InitializeComponent();
         }
@@ -73,6 +75,19 @@ namespace TicTacToeServer
             return clientIPString;
         }
 
+        void updateServerStatus()
+        {
+            foreach (Socket clientSocket in clientSocketArray.ToList())
+            {
+                if (!clientSocket.Connected)
+                {
+                    clientSocketArray.Remove(clientSocket);
+                    log_textbox.AppendText(getClientIPAddress(clientSocket) + " has disconnected from the server!\n");
+                    clientSocket.Close();
+                    clientSocket.Dispose();
+                }
+            }
+        }
 
         private void Accept()
         {
@@ -85,7 +100,7 @@ namespace TicTacToeServer
 
                     /*Getting IP adress of connected client socket*/
                     String clientIPString = getClientIPAddress(newClient);
-                    if (clientSocketArray.Count > MAX_NUMBER_OF_PLAYERS)
+                    if (clientSocketArray.Count >= MAX_NUMBER_OF_PLAYERS)
                     {
                         log_textbox.AppendText(clientIPString + " has tried to connect server but server is at maximum capacity!\n");
 
@@ -106,7 +121,7 @@ namespace TicTacToeServer
                         controllerThread.Start();
                     }
                 }
-                catch { }
+                catch {}
             }
         }
 
@@ -160,10 +175,6 @@ namespace TicTacToeServer
 
         void handleLeave(Player player)
         {
-            sendMessageToClientSocket(player.socket, "info:" + "You've left the game!\n");
-
-            player.socket.Close();
-            player.socket.Dispose();
             activePlayers.Remove(player);
 
             sendMessageToAllPlayers("info:" + player.username + " has left the game!\n");
@@ -189,14 +200,15 @@ namespace TicTacToeServer
         {
             while(clientSocket.Connected)
             {
-                Byte[] buffer = new Byte[64];
-                clientSocket.Receive(buffer);
-
-                string token = Encoding.Default.GetString(buffer).Trim('\0');
-                string[] request = token.Split(":");
-                string action = request[0];
                 try
                 {
+                    Byte[] buffer = new Byte[64];
+                    clientSocket.Receive(buffer);
+
+                    string token = Encoding.Default.GetString(buffer).Trim('\0');
+                    string[] request = token.Split(":");
+                    string action = request[0];
+
                     if (action == "join")
                     {
                         string username = request[1];
@@ -220,10 +232,16 @@ namespace TicTacToeServer
                     }
                 }
                 catch
+                {}
+                try
                 {
-                    log_textbox.AppendText($"Error on {getClientIPAddress(clientSocket)}'s request : the request was {action}\n");
+                    updateServerStatus();
                 }
-                
+                catch(Exception e)
+                {
+                    log_textbox.AppendText(e.Message + "\n");
+                }
+
             }
         }
 
@@ -275,7 +293,8 @@ namespace TicTacToeServer
             listen_button.Enabled = true;
             serverSocket.Close();
             serverSocket.Dispose();
-
+            activePlayers.Clear();
+            clientSocketArray.Clear();
             log_textbox.AppendText("Server has stopped accepting new connections!\n");
         }
 
