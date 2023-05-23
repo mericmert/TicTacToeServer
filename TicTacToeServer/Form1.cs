@@ -16,16 +16,13 @@ namespace TicTacToeServer
 
         static Mutex mutex = new Mutex();
 
+
+        bool isServerListening;
+
         Socket serverSocket;
         List<Socket> clientSocketArray;
         List<Player> activePlayers;
-        Queue<Player> XO_Queue; //first element represent X; second O
 
-
-
-        bool isServerListening;
-        int numberOfClientsWaitingToJoin = 0;
-        int numberOfPlayersWaitingToQueue = 0;
 
         public struct Player
         {
@@ -37,7 +34,7 @@ namespace TicTacToeServer
             public int points;
             public Socket socket;
             public string IPAddress;
-
+            public char? current_side;
             public Player(string name, Socket socket)
             {
                 this.username = name;
@@ -48,6 +45,7 @@ namespace TicTacToeServer
                 this.points = 0;
                 this.socket = socket;
                 this.IPAddress = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString();
+                this.current_side = null;
             }
 
         }
@@ -61,16 +59,177 @@ namespace TicTacToeServer
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
             isServerListening = false;
 
-            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientSocketArray = new List<Socket>();
             activePlayers = new List<Player>();
-            XO_Queue = new Queue<Player>();
 
             InitializeComponent();
         }
 
-        private void listen_button_Click(object sender, EventArgs e)
+
+        private string getClientIPAddress(Socket server)
         {
+            IPAddress clientIP = ((IPEndPoint)server.RemoteEndPoint).Address;
+            string clientIPString = clientIP.ToString();
+            return clientIPString;
+        }
+
+
+        private void Accept()
+        {
+            while (isServerListening)
+            {
+                try
+                {
+                    /*Server is waiting to accept new incoming client sockets*/
+                    Socket newClient = serverSocket.Accept();
+
+                    /*Getting IP adress of connected client socket*/
+                    String clientIPString = getClientIPAddress(newClient);
+                    if (clientSocketArray.Count > MAX_NUMBER_OF_PLAYERS)
+                    {
+                        log_textbox.AppendText(clientIPString + " has tried to connect server but server is at maximum capacity!\n");
+
+                        byte[] buffer = Encoding.Default.GetBytes("400:Server is at maximum capacity!");
+                        newClient.Send(buffer);
+                        newClient.Close();
+                    }
+                    else
+                    {
+                        /*Adding new client socket into client socket queue*/
+                        clientSocketArray.Add(newClient);
+                        log_textbox.AppendText(clientIPString + " has connected to the server!\n");
+                        byte[] buffer = Encoding.Default.GetBytes("200:Connection is OK!");
+                        newClient.Send(buffer);
+
+
+                        Thread controllerThread = new Thread(() => ClientController(newClient));
+                        controllerThread.Start();
+                    }
+                }
+                catch { }
+            }
+        }
+
+        bool checkUserName(string username)
+        {
+            foreach (Player player in activePlayers)
+            {
+                if (player.username == username) return false;
+            }
+            return true;
+        }
+
+        private void sendMessageToClientSocket(Socket client, string message)
+        {
+            try
+            {
+                Byte[] buffer = Encoding.Default.GetBytes(message);
+                client.Send(buffer);
+            }
+            catch (Exception e) {
+                log_textbox.AppendText("Message couldn't be sent to the client!\n");
+            };
+            
+        }
+
+        private void sendMessageToAllPlayers(string message)
+        {
+            foreach (Player player in activePlayers)
+            {
+                sendMessageToClientSocket(player.socket, message);
+            }
+        }
+
+
+        void handleJoin(Socket clientSocket, string username)
+        {
+            if (checkUserName(username))
+            {
+                Player player = new Player(username, clientSocket);
+                activePlayers.Add(player);
+                sendMessageToClientSocket(clientSocket, "201:You are succesfully joined the game!\n");
+                sendMessageToAllPlayers("info:" + username + " has joined the game!\n");
+                log_textbox.AppendText(username + " has joined the game!\n");
+            }
+            else
+            {
+                sendMessageToClientSocket(clientSocket, "401:Username is already taken!\n");
+                log_textbox.AppendText(getClientIPAddress(clientSocket) + " has tried to take a username that is already exist!\n");
+            }
+        }
+
+        void handleLeave(Player player)
+        {
+            sendMessageToClientSocket(player.socket, "info:" + "You've left the game!\n");
+
+            player.socket.Close();
+            player.socket.Dispose();
+            activePlayers.Remove(player);
+
+            sendMessageToAllPlayers("info:" + player.username + " has left the game!\n");
+            log_textbox.AppendText(player.username + " has left the game!\n");
+        }
+
+        void handleQueue(Player player)
+        {
+
+        }
+
+        Player? findPlayerBySocket(Socket clientSocket)
+        {
+            foreach(Player player in activePlayers)
+            {
+                if (player.socket == clientSocket) return player;
+            }
+            return null;
+        }
+
+
+        void ClientController(Socket clientSocket) //listener of each client socket
+        {
+            while(clientSocket.Connected)
+            {
+                Byte[] buffer = new Byte[64];
+                clientSocket.Receive(buffer);
+
+                string token = Encoding.Default.GetString(buffer).Trim('\0');
+                string[] request = token.Split(":");
+                string action = request[0];
+                try
+                {
+                    if (action == "join")
+                    {
+                        string username = request[1];
+                        handleJoin(clientSocket, username);
+                    }
+                    else if (action == "queue")
+                    {
+                        Player? player = findPlayerBySocket(clientSocket);
+                        if (player != null) handleQueue((Player)player);
+                    }
+
+                    else if (action == "leave")
+                    {
+                        Player? player = findPlayerBySocket(clientSocket);
+                        if (player != null) handleLeave((Player)player);
+
+                    }
+                    else
+                    {
+                        log_textbox.AppendText($"Invalid request ({action}) has been sent from {getClientIPAddress(clientSocket)}");
+                    }
+                }
+                catch
+                {
+                    log_textbox.AppendText($"Error on {getClientIPAddress(clientSocket)}'s request : the request was {action}\n");
+                }
+                
+            }
+        }
+
+        private void listen_button_Click(object sender, EventArgs e) // Client Socket connection is established
+        {
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             int portNumber;
             //Parsing Port Number
             if (Int32.TryParse(inputBox_port.Text, out portNumber))
@@ -107,214 +266,6 @@ namespace TicTacToeServer
             }
         }
 
-        private void WaitPlayerToJoin(Socket clientSocket)
-        {
-            IPAddress clientIP = ((IPEndPoint)clientSocket.RemoteEndPoint).Address;
-            string clientIPString = clientIP.ToString();
-
-            Byte[] buffer = new Byte[64];
-            while (numberOfClientsWaitingToJoin > 0) {
-                try
-                {
-                    clientSocket.Receive(buffer);
-                    string messageFromClient = Encoding.Default.GetString(buffer);
-                    messageFromClient = messageFromClient.Trim('\0');
-                    string[] token = messageFromClient.Split(':'); //format is "action:payload"
-                    
-                    if (token[0] == "join")
-                    {
-                        /* Atomic Operation */
-                        mutex.WaitOne();
-                        numberOfClientsWaitingToJoin--;
-                        mutex.ReleaseMutex();
-                        /********************/
-                        Thread joinThread = new Thread(() => JoinPlayer(token[1], clientSocket));
-                        joinThread.Start();
-                        break;
-                    }
-                    else if (token[0] == "leave")
-                    {
-                        mutex.WaitOne();
-                        numberOfClientsWaitingToJoin--;
-                        mutex.ReleaseMutex();
-                        clientSocket.Close();
-                        clientSocketArray.Remove(clientSocket);
-                        log_textbox.AppendText(clientIPString + " has disconnected from server!\n");
-                    }
-                }
-                catch (Exception e)
-                {
-                    log_textbox.AppendText(clientIPString +" could not join to the server!\n");
-                }
-
-            }
-            
-        }
-        private void QueuePlayer(Player player)
-        {
-            /*if (XO_Queue.Count < 2)
-            {
-                XO_Queue.Enqueue(player);
-            }
-            else
-            {
-
-            }*/
-        }
-
-        void updateSocketStatus()
-        {
-            foreach(Socket socket in clientSocketArray)
-            {
-                if (!socket.Connected)
-                {
-                    clientSocketArray.Remove(socket);
-                }
-            }
-        }
-
-        private void WaitPlayerToQueue(Player player)
-        {
-            Byte[] buffer = new Byte[64];
-            while (numberOfPlayersWaitingToQueue > 0)
-            {
-                try
-                {
-                    player.socket.Receive(buffer);
-                    string messageFromClient = Encoding.Default.GetString(buffer);
-                    messageFromClient = messageFromClient.Trim('\0');
-                    string[] token = messageFromClient.Split(':'); //format is "action:payload"
-
-                    if (token[0] == "queue")
-                    {
-                        /* Atomic Operation */
-                        mutex.WaitOne();
-                        numberOfPlayersWaitingToQueue--;
-                        mutex.ReleaseMutex();
-                        /********************/
-                        Thread queueThread = new Thread(() => QueuePlayer(player));
-                        queueThread.Start();
-                        break;
-                    }
-                    else if (token[0] == "leave")
-                    {
-                        mutex.WaitOne();
-                        numberOfClientsWaitingToJoin--;
-                        mutex.ReleaseMutex();
-                        player.socket.Close();
-                        clientSocketArray.Remove(player.socket);
-                        log_textbox.AppendText(player.IPAddress + " has disconnected from server!\n");
-                    }
-                }
-                catch (Exception e)
-                {
-                    log_textbox.AppendText(player.IPAddress + " could not join to the server!\n");
-                }
-            }
-        }
-
-
-
-        private bool checkUsername(String username)
-        {
-            foreach (Player player in activePlayers)
-            {
-                if (player.username == username) return false;
-            }
-            return true;
-        }
-
-        private void sendToAllClientSockets(String message)
-        {
-            foreach(Socket client in clientSocketArray)
-            {
-                byte[] buffer = Encoding.Default.GetBytes(message);
-                client.Send(buffer);
-            }
-        }
-
-        private void sendOneClient(Socket socket, String message)
-        {
-            byte[] buffer = Encoding.Default.GetBytes(message);
-            socket.Send(buffer);
-        }
-
-        private void JoinPlayer(String username, Socket clientSocket)
-        {
-            if (checkUsername(username))
-            {
-                Player new_player = new Player(username, clientSocket);
-                activePlayers.Add(new_player);
-                sendOneClient(clientSocket,"201:You have joined the server!\n");
-                sendToAllClientSockets("info:" + username + " has connnected to the server!\n");
-                log_textbox.AppendText($"{username} has connected to the server!\n");
-
-                /* Atomic Operation */
-                mutex.WaitOne();
-                numberOfPlayersWaitingToQueue += 1;
-                mutex.ReleaseMutex();
-                /********************/
-                Thread waitThread = new Thread(() => WaitPlayerToQueue(new_player));
-                waitThread.Start();
-
-            }
-            else
-            {
-
-                byte[] buffer = Encoding.Default.GetBytes("401:The username is not unique!\n");
-                clientSocket.Send(buffer);
-                String IPAdress = ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString();
-                log_textbox.AppendText($"{IPAdress} has tried to take a name that is already exist!\n");
-
-
-            }
-
-        }
-
-        private void Accept()
-        {
-            while (isServerListening)
-            {
-                try
-                {
-                    /*Server is waiting to accept new incoming client sockets*/
-                    Socket newClient = serverSocket.Accept();
-
-                    /*Getting IP adress of connected client socket*/
-                    IPAddress clientIP = ((IPEndPoint)newClient.RemoteEndPoint).Address;
-                    string clientIPString = clientIP.ToString();
-                    updateSocketStatus();
-                    if (clientSocketArray.Count == MAX_NUMBER_OF_PLAYERS)
-                    {
-                        log_textbox.AppendText(clientIPString + " has tried to connect server but server is at maximum capacity!\n");
-   
-                        byte[] buffer = Encoding.Default.GetBytes("400:Server is at maximum capacity!");
-                        newClient.Send(buffer);
-                        newClient.Close();
-                    }
-                    else
-                    {
-                        /*Adding new client socket into client socket queue*/
-                        clientSocketArray.Add(newClient);
-
-                        log_textbox.AppendText(clientIPString + " has connected to the server!\n");
-                        byte[] buffer = Encoding.Default.GetBytes("200:Connection is OK!");
-                        newClient.Send(buffer);
-
-                        /* Atomic Operation */
-                        mutex.WaitOne();
-                        numberOfClientsWaitingToJoin +=1;
-                        mutex.ReleaseMutex();
-                        /********************/
-
-                        Thread waitThread = new Thread(() => WaitPlayerToJoin(newClient));
-                        waitThread.Start();
-                    }
-                }
-                catch{}
-            }
-        }
-
         private void disconnect_button_Click(object sender, EventArgs e)
         {
             isServerListening = false;
@@ -322,9 +273,9 @@ namespace TicTacToeServer
             disconnect_button.Enabled = false;
             inputBox_port.Enabled = true;
             listen_button.Enabled = true;
-
             serverSocket.Close();
-            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            serverSocket.Dispose();
+
             log_textbox.AppendText("Server has stopped accepting new connections!\n");
         }
 
@@ -334,6 +285,7 @@ namespace TicTacToeServer
         {
             isServerListening = false;
             serverSocket.Close();
+            Environment.Exit(0);
         }
     }
 }
