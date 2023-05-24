@@ -245,6 +245,10 @@ namespace TicTacToeServer
         void handleQueue(Player player)
         {
             gameQueue.Enqueue(player);
+
+            log_textbox.AppendText(player.username + " has entered the game queue!\n");
+            sendMessageToAllPlayers("info:" + player.username + " has entered the game queue!\n");
+
             Player first_player;
    
             if (! sides["X"].HasValue)
