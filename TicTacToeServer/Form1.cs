@@ -7,6 +7,7 @@ using System.DirectoryServices;
 using System.Threading;
 using System;
 using static TicTacToeServer.Form1;
+using Newtonsoft.Json;
 
 namespace TicTacToeServer
 {
@@ -18,10 +19,18 @@ namespace TicTacToeServer
 
 
         bool isServerListening;
+        bool isGameNotFinished;
+        bool isXTurn;
+
 
         Socket serverSocket;
         List<Socket> clientSocketArray;
         List<Player> activePlayers;
+        Queue<Player> gameQueue;
+        Dictionary<String, Player?> sides;
+        String[,] gameBoard = new String[3, 3];
+        List<List<Button>> buttonsMatrix = new List<List<Button>>();
+
 
 
         public struct Player
@@ -34,7 +43,9 @@ namespace TicTacToeServer
             public int points;
             public Socket socket;
             public string IPAddress;
-            public char? current_side;
+            public string current_side;
+            public bool isAccept;
+
             public Player(string name, Socket socket)
             {
                 this.username = name;
@@ -45,7 +56,8 @@ namespace TicTacToeServer
                 this.points = 0;
                 this.socket = socket;
                 this.IPAddress = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString();
-                this.current_side = null;
+                this.current_side = "";
+                isAccept = false;
             }
 
         }
@@ -60,11 +72,20 @@ namespace TicTacToeServer
 
             clientSocketArray = new List<Socket>();
             activePlayers = new List<Player>();
-
+            gameQueue = new Queue<Player>();
+            sides = new Dictionary<String, Player?>();
+            sides.Add("X", null);
+            sides.Add("O", null);
+           
             isServerListening = false;
-            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            isGameNotFinished = false;
+            isXTurn = true;
 
+            initializeButtonMatrix();
+            initializeGameBoard();
             InitializeComponent();
+            
+
         }
 
 
@@ -73,6 +94,40 @@ namespace TicTacToeServer
             IPAddress clientIP = ((IPEndPoint)server.RemoteEndPoint).Address;
             string clientIPString = clientIP.ToString();
             return clientIPString;
+        }
+
+        void initializeButtonMatrix()
+        {
+            List<Button> row;
+
+            row = new List<Button>();
+            row.Add(btn_00);
+            row.Add(btn_01);
+            row.Add(btn_02);
+            buttonsMatrix.Add(row);
+
+            row = new List<Button>();
+            row.Add(btn_10);
+            row.Add(btn_11);
+            row.Add(btn_12);
+            buttonsMatrix.Add(row);
+
+            row = new List<Button>();
+            row.Add(btn_20);
+            row.Add(btn_21);
+            row.Add(btn_22);
+            buttonsMatrix.Add(row);
+        }
+
+        void initializeGameBoard()
+        {
+           for(int i = 0; i < 3; i++)
+            {
+                for(int j = 0; j < 3; j++)
+                {
+                    gameBoard[i,j] = "";
+                }
+            }
         }
 
         void updateServerStatus()
@@ -175,14 +230,45 @@ namespace TicTacToeServer
 
         void handleLeave(Player player)
         {
+            if(player.current_side == "X")
+            {
+                sides["X"] = null;
+            }
+            else if (player.current_side == "O") {
+                sides["O"] = null;
+            }
             activePlayers.Remove(player);
-
             sendMessageToAllPlayers("info:" + player.username + " has left the game!\n");
             log_textbox.AppendText(player.username + " has left the game!\n");
         }
 
         void handleQueue(Player player)
         {
+            gameQueue.Enqueue(player);
+            Player first_player;
+   
+            if (! sides["X"].HasValue)
+            {
+                first_player = gameQueue.Dequeue();
+                first_player.current_side = "X";
+                sides["X"] = first_player;
+
+            }
+            else if (! sides["O"].HasValue)
+            {
+                first_player = gameQueue.Dequeue();
+                first_player.current_side = "O";
+                sides["O"] = first_player;
+            }
+
+            if (sides["X"].HasValue && sides["O"].HasValue) //game start
+            {
+                Player X = (Player)sides["X"];
+                Player O = (Player)sides["O"];
+                sendMessageToClientSocket(X.socket, "start-req-x:Are you ready to play as X?\n");
+                sendMessageToClientSocket(O.socket, "start-req-o:Are you ready to play as O?\n");
+                log_textbox.AppendText("Two players are ready to the game. Waiting for response from them.\n");
+            }
 
         }
 
@@ -195,6 +281,152 @@ namespace TicTacToeServer
             return null;
         }
 
+        void makeMoveX(Player player)
+        {
+            sendMessageToClientSocket(player.socket, "make-move-x:");
+        }
+
+        void makeMoveO(Player player)
+        {
+            sendMessageToClientSocket(player.socket, "make-move-y:");
+        }
+
+
+        private bool checkDraw()
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    if (gameBoard[i, j] == "")
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        bool checkWin()
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (gameBoard[i, 0] != "" && gameBoard[i, 0] == gameBoard[i, 1] && gameBoard[i, 0] == gameBoard[i, 2])
+                {
+                    return true;
+                }
+
+                if (gameBoard[0, i] != "" && gameBoard[0, i] == gameBoard[1, i] && gameBoard[0, i] == gameBoard[2, i])
+                {
+                    return true;
+                }
+            }
+
+            // Check diagonals
+            if (gameBoard[0, 0] != "" && gameBoard[0, 0] == gameBoard[1, 1] && gameBoard[0, 0] == gameBoard[2, 2])
+            {
+                return true;
+            }
+
+            if (gameBoard[0, 2] != "" && gameBoard[0, 2] == gameBoard[1, 1] && gameBoard[0, 2] == gameBoard[2, 0])
+            {
+                return true;
+            }
+            return false;
+        }
+
+        void startGame(Player pX, Player pO)
+        {
+            isGameNotFinished = true;
+            while (isGameNotFinished)
+            {
+                makeMoveX(pX);
+                while (isXTurn) ;
+                if (checkWin())
+                {
+                    pX.win++;
+                    pO.loss++;
+                    isGameNotFinished = false;
+                    break;
+                }
+                else if (checkDraw())
+                {
+                    pX.draw++;
+                    pO.draw++;
+                    isGameNotFinished = false;
+                    break;
+                }
+                makeMoveO(pO);
+                while (!isXTurn) ;
+                if (checkWin())
+                {
+                    pO.win++;
+                    pX.loss++;
+                    isGameNotFinished = false;
+                    break;
+                }
+                else if (checkDraw())
+                {
+                    pX.draw++;
+                    pO.draw++;
+                    isGameNotFinished = false;
+                    break;
+                }
+            }
+            pX.gamesPlayed++;
+            pO.gamesPlayed++;
+            updateLeaderBoard();
+        }
+
+        void resetGameBoard()
+        {
+            //reset all board
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    gameBoard[i, j] = "";
+                }
+            }
+            foreach (List<Button> row in buttonsMatrix)
+            {
+                foreach(Button button in row)
+                {
+                    button.Text = "";
+                }
+            }
+            foreach (Player player in activePlayers)
+            {
+                sendBoardStatus(player.socket);
+            }
+        }
+
+        void updateLeaderBoard()
+        {
+            foreach(Player player in activePlayers)
+            {
+                //EDIT UI COMPONENTS
+            }
+        }
+
+        void sendBoardStatus(Socket clientSocket)
+        {
+            string gameBoardJSON = $"status:{JsonConvert.SerializeObject(gameBoard)}";
+            byte[] buffer = Encoding.Default.GetBytes(gameBoardJSON);
+            clientSocket.Send(buffer);
+
+        }
+
+
+        void updateGameBoard(int row, int col, string side)
+        {
+            gameBoard[row, col] = side;
+            foreach(Player player in activePlayers)
+            {
+                sendBoardStatus(player.socket);
+            }
+            
+        }
 
         void ClientController(Socket clientSocket) //listener of each client socket
         {
@@ -216,14 +448,52 @@ namespace TicTacToeServer
                     }
                     else if (action == "queue")
                     {
-                        Player? player = findPlayerBySocket(clientSocket);
-                        if (player != null) handleQueue((Player)player);
+                        Player? p = findPlayerBySocket(clientSocket);
+                        if (p.HasValue) handleQueue((Player)p);
                     }
+                    else if(action == "accept")
+                    {
+                        Player? p = findPlayerBySocket(clientSocket);
+                        if (p.HasValue)
+                        {
+                            Player player = (Player)p;
+                            player.isAccept = true;
 
+                            sendMessageToAllPlayers($"info:{player.username} is ready to play as {player.current_side}!\n");
+                            log_textbox.AppendText($"{player.username} is ready to play as {player.current_side}!\n");
+                        }
+                        if (sides["X"].HasValue && ((Player)sides["X"]).isAccept && sides["O"].HasValue && ((Player)sides["O"]).isAccept)
+                        {
+                            Player pX = (Player)sides["X"], pO = (Player)sides["O"];
+                            sendMessageToAllPlayers($"info:The game between {pX.username} and {pO.username} is starting!!\n");
+                            log_textbox.AppendText($"The game between  {pX.username}  and  {pO.username}  is starting!!\n");
+
+                            resetGameBoard();
+                            Thread gameThread = new Thread(() => startGame(pX ,pO));
+                            gameThread.Start();
+                      
+                        }
+
+                    }
+                    else if (action == "move") //move:1-3
+                    {
+                        Player? p = findPlayerBySocket(clientSocket);
+                        if (p.HasValue)
+                        {
+                            Player player = (Player)p;
+                            string[] row_col = request[1].Split("-");
+                            int row = int.Parse(row_col[0]);
+                            int col = int.Parse(row_col[1]);
+                            updateGameBoard(row, col, player.current_side);
+                            isXTurn = player.current_side == "X" ? false : true;
+                        } 
+                      
+
+                    }
                     else if (action == "leave")
                     {
-                        Player? player = findPlayerBySocket(clientSocket);
-                        if (player != null) handleLeave((Player)player);
+                        Player? p = findPlayerBySocket(clientSocket);
+                        if (p.HasValue) handleLeave((Player)p);
 
                     }
                     else
@@ -302,8 +572,8 @@ namespace TicTacToeServer
         /* Form Closing event handler*/
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (serverSocket != null) serverSocket.Close();
             isServerListening = false;
-            serverSocket.Close();
             Environment.Exit(0);
         }
     }
