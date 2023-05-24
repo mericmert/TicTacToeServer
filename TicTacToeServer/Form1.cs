@@ -482,7 +482,6 @@ namespace TicTacToeServer
             dataGridView_learderboard.Rows.Clear();
             foreach (Player player in activePlayers)
             {
-
                 dataGridView_learderboard.Rows.Add(player.username, player.gamesPlayed, player.win, player.draw, player.loss, player.points);
             }
 
