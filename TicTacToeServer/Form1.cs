@@ -14,7 +14,7 @@ namespace TicTacToeServer
 {
     public partial class Form1 : Form
     {
-        const int MAX_NUMBER_OF_PLAYERS = 2;
+        const int MAX_NUMBER_OF_PLAYERS = 3;
 
         static Mutex mutex = new Mutex();
 
@@ -173,10 +173,13 @@ namespace TicTacToeServer
             {
                 if (!clientSocket.Connected)
                 {
+                    Player? p = findPlayerBySocket(clientSocket);
+                    if (p.HasValue) activePlayers.Remove(((Player)p));
                     clientSocketArray.Remove(clientSocket);
                     log_textbox.AppendText(getClientIPAddress(clientSocket) + " has disconnected from the server!\n");
                     clientSocket.Close();
                     clientSocket.Dispose();
+                    updateLeaderBoard();
                 }
             }
 
@@ -451,7 +454,6 @@ namespace TicTacToeServer
                     break;
                 }
             }
-            updateLeaderBoard();
         }
 
         void resetGameBoard()
@@ -482,7 +484,6 @@ namespace TicTacToeServer
             dataGridView_learderboard.Rows.Clear();
             foreach (Player player in activePlayers)
             {
-
                 dataGridView_learderboard.Rows.Add(player.username, player.gamesPlayed, player.win, player.draw, player.loss, player.points);
             }
 
@@ -522,12 +523,16 @@ namespace TicTacToeServer
                     if (action == "join")
                     {
                         string username = request[1];
-                        handleJoin(clientSocket, username);
+                        Thread joinThread = new Thread(() => handleJoin(clientSocket, username));
+                        joinThread.Start();
                     }
                     else if (action == "queue")
                     {
                         Player? p = findPlayerBySocket(clientSocket);
-                        if (p.HasValue) handleQueue((Player)p);
+                        if (p.HasValue)
+                        {
+                            Thread queueThread = new Thread(() => handleQueue((Player)p));
+                        }
                     }
                     else if (action == "accept")
                     {
