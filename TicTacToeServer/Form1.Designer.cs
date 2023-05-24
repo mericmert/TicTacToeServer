@@ -46,6 +46,7 @@
             currentPlayers_label = new Label();
             serverlog_label = new Label();
             disconnect_button = new Button();
+            clearlogs_btn = new Button();
             ((System.ComponentModel.ISupportInitialize)dataGridView_learderboard).BeginInit();
             SuspendLayout();
             // 
@@ -83,10 +84,10 @@
             // 
             log_textbox.BackColor = SystemColors.MenuText;
             log_textbox.ForeColor = SystemColors.Control;
-            log_textbox.Location = new Point(12, 149);
+            log_textbox.Location = new Point(12, 129);
             log_textbox.Name = "log_textbox";
             log_textbox.ReadOnly = true;
-            log_textbox.Size = new Size(249, 282);
+            log_textbox.Size = new Size(249, 256);
             log_textbox.TabIndex = 3;
             log_textbox.Text = "";
             // 
@@ -174,10 +175,13 @@
             // 
             // dataGridView_learderboard
             // 
+            dataGridView_learderboard.AllowUserToAddRows = false;
+            dataGridView_learderboard.AllowUserToDeleteRows = false;
             dataGridView_learderboard.BackgroundColor = SystemColors.HighlightText;
             dataGridView_learderboard.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridView_learderboard.Location = new Point(276, 38);
             dataGridView_learderboard.Name = "dataGridView_learderboard";
+            dataGridView_learderboard.ReadOnly = true;
             dataGridView_learderboard.RowTemplate.Height = 25;
             dataGridView_learderboard.Size = new Size(282, 72);
             dataGridView_learderboard.TabIndex = 15;
@@ -212,7 +216,7 @@
             serverlog_label.BackColor = SystemColors.Desktop;
             serverlog_label.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point);
             serverlog_label.ForeColor = SystemColors.Control;
-            serverlog_label.Location = new Point(12, 129);
+            serverlog_label.Location = new Point(12, 109);
             serverlog_label.Name = "serverlog_label";
             serverlog_label.Size = new Size(80, 17);
             serverlog_label.TabIndex = 18;
@@ -232,12 +236,23 @@
             disconnect_button.UseVisualStyleBackColor = false;
             disconnect_button.Click += disconnect_button_Click;
             // 
+            // clearlogs_btn
+            // 
+            clearlogs_btn.Location = new Point(12, 391);
+            clearlogs_btn.Name = "clearlogs_btn";
+            clearlogs_btn.Size = new Size(136, 26);
+            clearlogs_btn.TabIndex = 20;
+            clearlogs_btn.Text = "Clear Logs";
+            clearlogs_btn.UseVisualStyleBackColor = true;
+            clearlogs_btn.Click += clearlogs_btn_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.Desktop;
             ClientSize = new Size(571, 443);
+            Controls.Add(clearlogs_btn);
             Controls.Add(disconnect_button);
             Controls.Add(serverlog_label);
             Controls.Add(currentPlayers_label);
@@ -283,5 +298,6 @@
         private Label currentPlayers_label;
         private Label serverlog_label;
         private Button disconnect_button;
+        private Button clearlogs_btn;
     }
 }
