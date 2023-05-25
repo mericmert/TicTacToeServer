@@ -47,6 +47,7 @@ namespace TicTacToeServer
             public string IPAddress;
             public string current_side;
             public bool isAccept;
+            public bool isRequestPending;
 
             public Player(string name, Socket socket)
             {
@@ -60,6 +61,7 @@ namespace TicTacToeServer
                 this.IPAddress = ((IPEndPoint)socket.RemoteEndPoint).Address.ToString();
                 this.current_side = "";
                 isAccept = false;
+                isRequestPending = false;
 
             }
 
@@ -147,7 +149,7 @@ namespace TicTacToeServer
             dataGridView_learderboard.Columns[5].Name = "Points";
 
 
-            dataGridView_learderboard.Columns[0].Width = 99;
+            dataGridView_learderboard.Columns[0].Width = 90;
             dataGridView_learderboard.Columns[1].Width = 30;
             dataGridView_learderboard.Columns[2].Width = 30;
             dataGridView_learderboard.Columns[3].Width = 30;
@@ -174,12 +176,23 @@ namespace TicTacToeServer
                 if (!clientSocket.Connected)
                 {
                     Player? p = findPlayerBySocket(clientSocket);
-                    if (p.HasValue) activePlayers.Remove(((Player)p));
-                    clientSocketArray.Remove(clientSocket);
-                    log_textbox.AppendText(getClientIPAddress(clientSocket) + " has disconnected from the server!\n");
-                    clientSocket.Close();
-                    clientSocket.Dispose();
+                    if (p != null)
+                    {
+                        if(((Player)p).isRequestPending == true)
+                        {
+                            gameIsPending = false;
+                        }
+                        handleLeave((Player)p);
+                    }
+                    else
+                    {
+                        clientSocketArray.Remove(clientSocket);
+                        log_textbox.AppendText(getClientIPAddress(clientSocket) + " has disconnected from the server!\n");
+                        clientSocket.Close();
+                        clientSocket.Dispose();
+                    }
                     updateLeaderBoard();
+
                 }
             }
 
@@ -316,12 +329,14 @@ namespace TicTacToeServer
                     Player O = (Player)sides["O"];
                     if (X.isAccept == false)
                     {
-                        sendMessageToClientSocket(X.socket, "start-req-x:Are you ready to play as X?\n");
+                        X.isRequestPending = true;
+                        sendMessageToClientSocket(X.socket, "startreq:X:Are you ready to play as X?\n");
                         log_textbox.AppendText("Game Request has been sent to X. Waiting response!\n");
                     }
                     if (O.isAccept == false)
                     {
-                        sendMessageToClientSocket(O.socket, "start-req-o:Are you ready to play as O?\n");
+                        O.isRequestPending = true;
+                        sendMessageToClientSocket(O.socket, "startreq:O:Are you ready to play as O?\n");
                         log_textbox.AppendText("Game Request has been sent to X. Waiting response!\n");
                     }
                     log_textbox.AppendText("Two players are ready to the game. Waiting for response from them.\n");
@@ -481,11 +496,13 @@ namespace TicTacToeServer
 
         void updateLeaderBoard()
         {
+            mutex.WaitOne();
             dataGridView_learderboard.Rows.Clear();
             foreach (Player player in activePlayers)
             {
                 dataGridView_learderboard.Rows.Add(player.username, player.gamesPlayed, player.win, player.draw, player.loss, player.points);
             }
+            mutex.ReleaseMutex();
 
         }
 
@@ -529,21 +546,19 @@ namespace TicTacToeServer
                     else if (action == "queue")
                     {
                         Player? p = findPlayerBySocket(clientSocket);
-                        if (p.HasValue)
-                        {
-                            Thread queueThread = new Thread(() => handleQueue((Player)p));
-                        }
+                        handleQueue((Player)p);
                     }
                     else if (action == "accept")
                     {
                         Player? p = findPlayerBySocket(clientSocket);
+                        string side = request[2];
+
                         if (p.HasValue)
                         {
                             Player player = (Player)p;
                             player.isAccept = true;
-
-                            sendMessageToAllPlayers($"info:{player.username} is ready to play as {player.current_side}!\n");
-                            log_textbox.AppendText($"{player.username} is ready to play as {player.current_side}!\n");
+                            sendMessageToAllPlayers($"info:{player.username} is ready to play as {side}!\n");
+                            log_textbox.AppendText($"{player.username} is ready to play as {side}!\n");
                         }
                         if (sides["X"].HasValue && ((Player)sides["X"]).isAccept && sides["O"].HasValue && ((Player)sides["O"]).isAccept)
                         {
