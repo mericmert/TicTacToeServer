@@ -194,10 +194,10 @@ namespace TicTacToeServer
             {
                 if (!clientSocket.Connected)
                 {
-                    Player? p = findPlayerBySocket(clientSocket);
-                    if (p != null)
+                    Player player = findPlayerBySocket(clientSocket);
+                    if (player.gamesPlayed != -1)
                     {
-                        handleLeave((Player)p);
+                        handleLeave(player);
                     }
                     else
                     {
@@ -301,11 +301,11 @@ namespace TicTacToeServer
         void handleLeave(Player player)
         {
 
-            if (player.Equals(x_player))
+            if (player.username == x_player.username)
             {
                 x_player = new Player(-1);
             }
-            else if (player.Equals(o_player))
+            else if (player.username == o_player.username)
             {
                 o_player = new Player(-1);
             }
