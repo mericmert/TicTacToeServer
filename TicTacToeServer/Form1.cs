@@ -15,7 +15,7 @@ namespace TicTacToeServer
 {
     public partial class Form1 : Form
     {
-        const int MAX_NUMBER_OF_PLAYERS = 3;
+        const int MAX_NUMBER_OF_PLAYERS = 4;
 
         static Mutex mutex = new Mutex();
 
@@ -150,7 +150,7 @@ namespace TicTacToeServer
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    gameBoard[i, j] = "";
+                    gameBoard[i, j] = " ";
                 }
             }
         }
@@ -334,12 +334,14 @@ namespace TicTacToeServer
                 if (x_player.gamesPlayed != -1 && o_player.gamesPlayed != -1)
                 {
 
-                    if (!x_player.isReceivedRequest) {
+                    if (!x_player.isReceivedRequest)
+                    {
                         sendMessageToClientSocket(x_player.socket, "startreq:X:Are you ready to play as an X?\n");
                         x_player.isReceivedRequest = true;
                         log_textbox.AppendText("Server sent a game request to " + x_player.username + "\n");
                     }
-                    if (!o_player.isReceivedRequest) {
+                    if (!o_player.isReceivedRequest)
+                    {
                         sendMessageToClientSocket(o_player.socket, "startreq:O:Are you ready to play as an O?\n");
                         o_player.isReceivedRequest = true;
                         log_textbox.AppendText("Server sent a game request to " + o_player.username + "\n");
@@ -375,14 +377,21 @@ namespace TicTacToeServer
             return new Player(-1);
         }
 
-        void makeMoveX(Player player)
+        void makeMoveX()
         {
-            sendMessageToClientSocket(player.socket, "make-move-x:");
+            log_textbox.AppendText("move request is sent to X!\n");
+            sendBoardStatusToAll();
+            Thread.Sleep(500);
+            sendMessageToClientSocket(x_player.socket, "yourturn:X:");
+
         }
 
-        void makeMoveO(Player player)
+        void makeMoveO()
         {
-            sendMessageToClientSocket(player.socket, "make-move-y:");
+            log_textbox.AppendText("move request is sent to O!\n");
+            sendBoardStatusToAll();
+            Thread.Sleep(500);
+            sendMessageToClientSocket(o_player.socket, "yourturn:O");
         }
 
         private bool checkDraw()
@@ -391,7 +400,7 @@ namespace TicTacToeServer
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    if (gameBoard[i, j] == "")
+                    if (gameBoard[i, j] == " ")
                     {
                         return false;
                     }
@@ -404,77 +413,85 @@ namespace TicTacToeServer
         {
             for (int i = 0; i < 3; i++)
             {
-                if (gameBoard[i, 0] != "" && gameBoard[i, 0] == gameBoard[i, 1] && gameBoard[i, 0] == gameBoard[i, 2])
+                if (gameBoard[i, 0] != " " && gameBoard[i, 0] == gameBoard[i, 1] && gameBoard[i, 0] == gameBoard[i, 2])
                 {
                     return true;
                 }
 
-                if (gameBoard[0, i] != "" && gameBoard[0, i] == gameBoard[1, i] && gameBoard[0, i] == gameBoard[2, i])
+                if (gameBoard[0, i] != " " && gameBoard[0, i] == gameBoard[1, i] && gameBoard[0, i] == gameBoard[2, i])
                 {
                     return true;
                 }
             }
 
             // Check diagonals
-            if (gameBoard[0, 0] != "" && gameBoard[0, 0] == gameBoard[1, 1] && gameBoard[0, 0] == gameBoard[2, 2])
+            if (gameBoard[0, 0] != " " && gameBoard[0, 0] == gameBoard[1, 1] && gameBoard[0, 0] == gameBoard[2, 2])
             {
                 return true;
             }
 
-            if (gameBoard[0, 2] != "" && gameBoard[0, 2] == gameBoard[1, 1] && gameBoard[0, 2] == gameBoard[2, 0])
+            if (gameBoard[0, 2] != " " && gameBoard[0, 2] == gameBoard[1, 1] && gameBoard[0, 2] == gameBoard[2, 0])
             {
                 return true;
             }
             return false;
         }
 
-        void startGame(Player pX, Player pO)
+        void startGame()
         {
-            pX.gamesPlayed++; pO.gamesPlayed++;
+            sendMessageToAllPlayers($"info:The game between {x_player.username} and {o_player.username} is starting\n");
+            Thread.Sleep(500);
+            sendMessageToAllPlayers($"update:vs:{x_player.username}:{o_player.username}");
+            log_textbox.AppendText($"The game between {x_player.username} and {o_player.username} is starting\n");
+            currentPlayers_label.Text = $"{x_player.username} vs {o_player.username}";
+
+            x_player.gamesPlayed++; o_player.gamesPlayed++;
             isGameNotFinished = true;
             while (isGameNotFinished)
             {
-                makeMoveX(pX);
+                makeMoveX();
                 while (isXTurn) ;
                 if (checkWin())
                 {
-                    pX.win++;
-                    pO.loss++;
-                    isGameNotFinished = false;
-                    gameIsPending = false;
-                    dequeuePlayers();
+                    sendMessageToAllPlayers($"info:{x_player.username} (X) has won the game!\n");
+                    log_textbox.AppendText($"{x_player.username} (X) has won the game!\n");
+                    x_player.win++;
+                    o_player.loss++;
                     break;
                 }
                 else if (checkDraw())
                 {
-                    pX.draw++;
-                    pO.draw++;
-                    isGameNotFinished = false;
-                    gameIsPending = false;
-                    dequeuePlayers();
+                    sendMessageToAllPlayers("info:Game is Tie!\n");
+                    log_textbox.AppendText("Game is Tie!\n");
+                    x_player.draw++;
+                    o_player.draw++;
                     break;
                 }
-                makeMoveO(pO);
+                makeMoveO();
                 while (!isXTurn) ;
                 if (checkWin())
                 {
-                    pO.win++;
-                    pX.loss++;
-                    isGameNotFinished = false;
-                    gameIsPending = false;
-                    dequeuePlayers();
+                    sendMessageToAllPlayers($"info:{o_player.username} (X) has won the game!\n");
+                    log_textbox.AppendText($"{o_player.username} (X) has won the game!\n");
+                    o_player.win++;
+                    x_player.loss++;
                     break;
                 }
                 else if (checkDraw())
                 {
-                    pX.draw++;
-                    pO.draw++;
-                    isGameNotFinished = false;
-                    gameIsPending = false;
-                    dequeuePlayers();
+                    sendMessageToAllPlayers("info:Game is Tie!\n");
+                    log_textbox.AppendText("Game is Tie!\n");
+                    x_player.draw++;
+                    o_player.draw++;
+
                     break;
                 }
             }
+            x_player = new Player(-1);
+            o_player = new Player(-1);
+            isGameNotFinished = false;
+            gameIsPending = false;
+            dequeuePlayers();
         }
 
         void resetGameBoard()
@@ -484,20 +501,17 @@ namespace TicTacToeServer
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    gameBoard[i, j] = "";
+                    gameBoard[i, j] = " ";
                 }
             }
-            foreach (List<Button> row in buttonsMatrix)
+            /*foreach (List<Button> row in buttonsMatrix)
             {
                 foreach (Button button in row)
                 {
-                    button.Text = "";
+                    button.Text = " ";
                 }
-            }
-            foreach (Player player in activePlayers)
-            {
-                sendBoardStatus(player.socket);
-            }
+            }*/
+            sendBoardStatusToAll();
         }
 
         void updateLeaderBoard()
@@ -514,19 +528,37 @@ namespace TicTacToeServer
 
         void sendBoardStatus(Socket clientSocket)
         {
-            string gameBoardJSON = $"status:{JsonConvert.SerializeObject(gameBoard)}";
+            string gameBoardJSON = $"update:board:{JsonConvert.SerializeObject(gameBoard)}";
             byte[] buffer = Encoding.Default.GetBytes(gameBoardJSON);
             clientSocket.Send(buffer);
 
         }
 
-        void updateGameBoard(int row, int col, string side)
+        void sendBoardStatusToAll()
         {
-            gameBoard[row, col] = side;
             foreach (Player player in activePlayers)
             {
                 sendBoardStatus(player.socket);
             }
+        }
+
+        void updateGameUI()
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    buttonsMatrix[i][j].Text = gameBoard[i, j];
+                }
+            }
+        }
+
+
+        void updateGameBoard(int row, int col, string side)
+        {
+            gameBoard[row, col] = side;
+            updateGameUI();
+            sendBoardStatusToAll();
 
         }
 
@@ -552,8 +584,8 @@ namespace TicTacToeServer
                     else if (action == "queue")
                     {
                         Player p = findPlayerBySocket(clientSocket);
-                        handleQueue((Player)p);
-                   
+                        handleQueue(p);
+
                     }
                     else if (action == "accept")
                     {
@@ -565,42 +597,42 @@ namespace TicTacToeServer
                                 log_textbox.AppendText($"{player.username} (X) is accepted!\n");
                                 x_player.isAccept = true;
                             }
-                            else if(player.username == o_player.username) {
+                            else if (player.username == o_player.username)
+                            {
                                 log_textbox.AppendText($"{player.username} (O) is accepted!\n");
                                 o_player.isAccept = true;
                             }
 
-                            if(x_player.isAccept && o_player.isAccept)
+                            if (x_player.isAccept && o_player.isAccept)
                             {
-                                sendMessageToAllPlayers($"info:The game between {x_player.username} and {o_player.username} is starting");
-                                log_textbox.AppendText($"The game between {x_player.username} and {o_player.username} is starting");
-                                Thread gameThread = new Thread(() => startGame(x_player,o_player));
+                                sendMessageToClientSocket(x_player.socket, $"startplay:{o_player.username}");
+                                sendMessageToClientSocket(o_player.socket, $"startplay:{x_player.username}");
+                                Thread gameThread = new Thread(() => startGame());
+                                gameThread.Start();
                             }
                         }
-                        
-
-                     
 
                     }
                     else if (action == "move") //move:1-3
                     {
-                        Player? p = findPlayerBySocket(clientSocket);
-                        if (p.HasValue)
+                        Player player = findPlayerBySocket(clientSocket);
+                        if (player.gamesPlayed != -1)
                         {
-                            Player player = (Player)p;
                             string[] row_col = request[1].Split("-");
                             int row = int.Parse(row_col[0]);
                             int col = int.Parse(row_col[1]);
-                            //updateGameBoard(row, col, player.current_side);
-                            //isXTurn = player.current_side == "X" ? false : true;
+                            string side = isXTurn ? "X" : "O";
+                            isXTurn = !isXTurn;
+                            updateGameBoard(row, col, side);
+
                         }
 
 
                     }
                     else if (action == "leave")
                     {
-                        Player? p = findPlayerBySocket(clientSocket);
-                        if (p.HasValue) handleLeave((Player)p);
+                        Player p = findPlayerBySocket(clientSocket);
+                        if (p.gamesPlayed != -1) handleLeave(p);
 
                     }
                     else
@@ -668,10 +700,14 @@ namespace TicTacToeServer
             disconnect_button.Enabled = false;
             inputBox_port.Enabled = true;
             listen_button.Enabled = true;
+            resetGameBoard();
             serverSocket.Close();
             serverSocket.Dispose();
             activePlayers.Clear();
             clientSocketArray.Clear();
+            gameQueue.Clear();
+            x_player = new Player(-1);
+            o_player = new Player(-1);
             log_textbox.AppendText("Server has stopped accepting new connections!\n");
         }
 
