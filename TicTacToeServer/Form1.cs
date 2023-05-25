@@ -9,6 +9,7 @@ using System;
 using System.ComponentModel;
 using static TicTacToeServer.Form1;
 using Newtonsoft.Json;
+using System.Xml.Linq;
 
 namespace TicTacToeServer
 {
@@ -33,7 +34,7 @@ namespace TicTacToeServer
         String[,] gameBoard = new String[3, 3];
         List<List<Button>> buttonsMatrix = new List<List<Button>>();
 
-        Player? x_player, o_player;
+        Player x_player, o_player;
 
         public struct Player
         {
@@ -49,6 +50,20 @@ namespace TicTacToeServer
             public bool isReceivedRequest;
             public bool isAccept;
 
+            public Player(int gamesPlayed)
+            {
+                this.username = "";
+                this.gamesPlayed = -1;
+                this.win = 0;
+                this.draw = 0;
+                this.loss = 0;
+                this.points = 0;
+                this.socket = null;
+                this.IPAddress = "";
+                this.side = "";
+                this.isReceivedRequest = false;
+                this.isAccept = false;
+            }
             public Player(string name, Socket socket)
             {
                 this.username = name;
@@ -83,8 +98,8 @@ namespace TicTacToeServer
             sides.Add("O", null);
 
 
-            x_player = null;
-            o_player = null;
+            x_player = new Player(-1);
+            o_player = new Player(-1);
 
             isServerListening = false;
             isGameNotFinished = false;
@@ -285,17 +300,14 @@ namespace TicTacToeServer
 
         void handleLeave(Player player)
         {
-            Player X = (Player)x_player;
-            Player O = (Player)x_player;
 
-
-            if (player.Equals(X))
+            if (player.Equals(x_player))
             {
-                x_player = null;
+                x_player = new Player(-1);
             }
-            else if (player.Equals(O))
+            else if (player.Equals(o_player))
             {
-                o_player = null;
+                o_player = new Player(-1);
             }
             activePlayers.Remove(player);
             sendMessageToAllPlayers("info:" + player.username + " has left the game!\n");
@@ -310,29 +322,27 @@ namespace TicTacToeServer
         {
             try
             {
-                if (x_player == null)
+                if (x_player.gamesPlayed == -1)
                 {
                     x_player = gameQueue.Dequeue();
                 }
-                else if (o_player == null)
+                else if (o_player.gamesPlayed == -1)
                 {
                     o_player = gameQueue.Dequeue();
                 }
 
-                if (x_player != null && o_player != null)
+                if (x_player.gamesPlayed != -1 && o_player.gamesPlayed != -1)
                 {
-                    Player X = (Player)x_player;
-                    Player O = (Player)o_player;
 
-                    if (!X.isReceivedRequest) {
-                        sendMessageToClientSocket(X.socket, "startreq:X:Are you ready to play as an X?\n");
-                        X.isReceivedRequest = true;
-                        log_textbox.AppendText("Server sent a game request to " + X.username + "\n");
+                    if (!x_player.isReceivedRequest) {
+                        sendMessageToClientSocket(x_player.socket, "startreq:X:Are you ready to play as an X?\n");
+                        x_player.isReceivedRequest = true;
+                        log_textbox.AppendText("Server sent a game request to " + x_player.username + "\n");
                     }
-                    if (!O.isReceivedRequest) {
-                        sendMessageToClientSocket(O.socket, "startreq:O:Are you ready to play as an O?\n");
-                        O.isReceivedRequest = true;
-                        log_textbox.AppendText("Server sent a game request to " + O.username + "\n");
+                    if (!o_player.isReceivedRequest) {
+                        sendMessageToClientSocket(o_player.socket, "startreq:O:Are you ready to play as an O?\n");
+                        o_player.isReceivedRequest = true;
+                        log_textbox.AppendText("Server sent a game request to " + o_player.username + "\n");
                     }
 
                 }
@@ -356,13 +366,13 @@ namespace TicTacToeServer
 
         }
 
-        Player? findPlayerBySocket(Socket clientSocket)
+        Player findPlayerBySocket(Socket clientSocket)
         {
             foreach (Player player in activePlayers)
             {
                 if (player.socket == clientSocket) return player;
             }
-            return null;
+            return new Player(-1);
         }
 
         void makeMoveX(Player player)
@@ -541,31 +551,30 @@ namespace TicTacToeServer
                     }
                     else if (action == "queue")
                     {
-                        Player? p = findPlayerBySocket(clientSocket);
+                        Player p = findPlayerBySocket(clientSocket);
                         handleQueue((Player)p);
                    
                     }
                     else if (action == "accept")
                     {
-                        Player? query = findPlayerBySocket(clientSocket);
-                        if (query != null)
+                        Player player = findPlayerBySocket(clientSocket);
+                        if (player.gamesPlayed != -1)
                         {
-                            Player player = (Player)query;
-                            if (player.Equals(x_player))
+                            if (player.username == x_player.username)
                             {
-                                log_textbox.AppendText($"{player.username} (X) is accepted!");
-                                (Player)x_player;
+                                log_textbox.AppendText($"{player.username} (X) is accepted!\n");
+                                x_player.isAccept = true;
                             }
-                            else if(player.Equals(o_player)) {
-                                log_textbox.AppendText($"{player.username} (O) is accepted!");
-                                O.isAccept = true;
+                            else if(player.username == o_player.username) {
+                                log_textbox.AppendText($"{player.username} (O) is accepted!\n");
+                                o_player.isAccept = true;
                             }
 
-                            if(X.isAccept && O.isAccept)
+                            if(x_player.isAccept && o_player.isAccept)
                             {
-                                sendMessageToAllPlayers($"info:The game between {X.username} and {O.username} is starting");
-                                log_textbox.AppendText($"The game between {X.username} and {O.username} is starting");
-                                Thread gameThread = new Thread(() => startGame(X,O));
+                                sendMessageToAllPlayers($"info:The game between {x_player.username} and {o_player.username} is starting");
+                                log_textbox.AppendText($"The game between {x_player.username} and {o_player.username} is starting");
+                                Thread gameThread = new Thread(() => startGame(x_player,o_player));
                             }
                         }
                         
