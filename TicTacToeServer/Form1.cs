@@ -10,6 +10,7 @@ using System.ComponentModel;
 using static TicTacToeServer.Form1;
 using Newtonsoft.Json;
 using System.Xml.Linq;
+using System.Drawing.Imaging;
 
 namespace TicTacToeServer
 {
@@ -263,6 +264,7 @@ namespace TicTacToeServer
             {
                 Byte[] buffer = Encoding.Default.GetBytes(message);
                 client.Send(buffer);
+                Thread.Sleep(250);
             }
             catch (Exception e)
             {
@@ -290,6 +292,7 @@ namespace TicTacToeServer
                 sendMessageToAllPlayers("info:" + username + " has joined the game!\n");
                 log_textbox.AppendText(username + " has joined the game!\n");
                 updateLeaderBoard();
+                sendBoardStatus(player.socket);
             }
             else
             {
@@ -381,7 +384,6 @@ namespace TicTacToeServer
         {
             log_textbox.AppendText("move request is sent to X!\n");
             sendBoardStatusToAll();
-            Thread.Sleep(500);
             sendMessageToClientSocket(x_player.socket, "yourturn:X:");
 
         }
@@ -390,7 +392,6 @@ namespace TicTacToeServer
         {
             log_textbox.AppendText("move request is sent to O!\n");
             sendBoardStatusToAll();
-            Thread.Sleep(500);
             sendMessageToClientSocket(o_player.socket, "yourturn:O");
         }
 
@@ -439,8 +440,8 @@ namespace TicTacToeServer
 
         void startGame()
         {
+            resetGameBoard();
             sendMessageToAllPlayers($"info:The game between {x_player.username} and {o_player.username} is starting\n");
-            Thread.Sleep(500);
             sendMessageToAllPlayers($"update:vs:{x_player.username}:{o_player.username}");
             log_textbox.AppendText($"The game between {x_player.username} and {o_player.username} is starting\n");
             currentPlayers_label.Text = $"{x_player.username} vs {o_player.username}";
@@ -454,6 +455,10 @@ namespace TicTacToeServer
                 if (checkWin())
                 {
                     sendMessageToAllPlayers($"info:{x_player.username} (X) has won the game!\n");
+                    sendMessageToClientSocket(x_player.socket, $"update:finish:win:{x_player.username}");
+                    sendMessageToClientSocket(o_player.socket, $"update:finish:lose:{o_player.username}");
+
+
                     log_textbox.AppendText($"{x_player.username} (X) has won the game!\n");
                     x_player.win++;
                     o_player.loss++;
@@ -462,6 +467,9 @@ namespace TicTacToeServer
                 else if (checkDraw())
                 {
                     sendMessageToAllPlayers("info:Game is Tie!\n");
+                    sendMessageToClientSocket(x_player.socket, $"update:finish:draw:{x_player.username}");
+                    sendMessageToClientSocket(o_player.socket, $"update:finish:draw{o_player.username}");
+
                     log_textbox.AppendText("Game is Tie!\n");
                     x_player.draw++;
                     o_player.draw++;
@@ -471,8 +479,12 @@ namespace TicTacToeServer
                 while (!isXTurn) ;
                 if (checkWin())
                 {
-                    sendMessageToAllPlayers($"info:{o_player.username} (X) has won the game!\n");
-                    log_textbox.AppendText($"{o_player.username} (X) has won the game!\n");
+                    sendMessageToAllPlayers($"info:{o_player.username} (O) has won the game!\n");
+                    sendMessageToClientSocket(o_player.socket, $"update:finish:win:{o_player.username}");
+                    sendMessageToClientSocket(x_player.socket, $"update:finish:lose:{x_player.username}");
+
+
+                    log_textbox.AppendText($"{o_player.username} (O) has won the game!\n");
                     o_player.win++;
                     x_player.loss++;
                     break;
@@ -480,6 +492,9 @@ namespace TicTacToeServer
                 else if (checkDraw())
                 {
                     sendMessageToAllPlayers("info:Game is Tie!\n");
+                    sendMessageToClientSocket(x_player.socket, $"update:finish:draw:{x_player.username}");
+                    sendMessageToClientSocket(o_player.socket, $"update:finish:draw:{o_player.username}");
+
                     log_textbox.AppendText("Game is Tie!\n");
                     x_player.draw++;
                     o_player.draw++;
@@ -491,6 +506,7 @@ namespace TicTacToeServer
             o_player = new Player(-1);
             isGameNotFinished = false;
             gameIsPending = false;
+            isXTurn = true;
             dequeuePlayers();
         }
 
@@ -512,6 +528,7 @@ namespace TicTacToeServer
                 }
             }*/
             sendBoardStatusToAll();
+            updateGameUI();
         }
 
         void updateLeaderBoard()
@@ -562,6 +579,12 @@ namespace TicTacToeServer
 
         }
 
+        void updatePlayersLabel()
+        {
+            currentPlayers_label.Text = x_player.username + " vs " + o_player.username;
+            sendMessageToAllPlayers($"update:label:{x_player.username}:{o_player.username}");
+        }
+
         void ClientController(Socket clientSocket) //listener of each client socket
         {
             while (clientSocket.Connected)
@@ -592,6 +615,7 @@ namespace TicTacToeServer
                         Player player = findPlayerBySocket(clientSocket);
                         if (player.gamesPlayed != -1)
                         {
+                            updatePlayersLabel();
                             if (player.username == x_player.username)
                             {
                                 log_textbox.AppendText($"{player.username} (X) is accepted!\n");
@@ -605,6 +629,8 @@ namespace TicTacToeServer
 
                             if (x_player.isAccept && o_player.isAccept)
                             {
+                                x_player.isAccept = false;
+                                o_player.isAccept = false;
                                 sendMessageToClientSocket(x_player.socket, $"startplay:{o_player.username}");
                                 sendMessageToClientSocket(o_player.socket, $"startplay:{x_player.username}");
                                 Thread gameThread = new Thread(() => startGame());

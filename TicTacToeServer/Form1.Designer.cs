@@ -96,7 +96,7 @@
             // 
             // btn_00
             // 
-            btn_00.BackColor = SystemColors.HighlightText;
+            btn_00.BackColor = SystemColors.ControlLight;
             btn_00.Enabled = false;
             btn_00.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_00.Location = new Point(315, 199);
@@ -108,6 +108,7 @@
             // 
             // btn_01
             // 
+            btn_01.BackColor = SystemColors.ControlLight;
             btn_01.Enabled = false;
             btn_01.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_01.Location = new Point(425, 199);
@@ -115,10 +116,11 @@
             btn_01.Name = "btn_01";
             btn_01.Size = new Size(103, 120);
             btn_01.TabIndex = 7;
-            btn_01.UseVisualStyleBackColor = true;
+            btn_01.UseVisualStyleBackColor = false;
             // 
             // btn_02
             // 
+            btn_02.BackColor = SystemColors.ControlLight;
             btn_02.Enabled = false;
             btn_02.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_02.Location = new Point(535, 199);
@@ -126,10 +128,11 @@
             btn_02.Name = "btn_02";
             btn_02.Size = new Size(103, 120);
             btn_02.TabIndex = 8;
-            btn_02.UseVisualStyleBackColor = true;
+            btn_02.UseVisualStyleBackColor = false;
             // 
             // btn_12
             // 
+            btn_12.BackColor = SystemColors.ControlLight;
             btn_12.Enabled = false;
             btn_12.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_12.Location = new Point(535, 327);
@@ -137,10 +140,11 @@
             btn_12.Name = "btn_12";
             btn_12.Size = new Size(103, 120);
             btn_12.TabIndex = 11;
-            btn_12.UseVisualStyleBackColor = true;
+            btn_12.UseVisualStyleBackColor = false;
             // 
             // btn_11
             // 
+            btn_11.BackColor = SystemColors.ControlLight;
             btn_11.Enabled = false;
             btn_11.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_11.Location = new Point(425, 327);
@@ -148,10 +152,11 @@
             btn_11.Name = "btn_11";
             btn_11.Size = new Size(103, 120);
             btn_11.TabIndex = 10;
-            btn_11.UseVisualStyleBackColor = true;
+            btn_11.UseVisualStyleBackColor = false;
             // 
             // btn_10
             // 
+            btn_10.BackColor = SystemColors.ControlLight;
             btn_10.Enabled = false;
             btn_10.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_10.Location = new Point(315, 327);
@@ -159,10 +164,11 @@
             btn_10.Name = "btn_10";
             btn_10.Size = new Size(103, 120);
             btn_10.TabIndex = 9;
-            btn_10.UseVisualStyleBackColor = true;
+            btn_10.UseVisualStyleBackColor = false;
             // 
             // btn_22
             // 
+            btn_22.BackColor = SystemColors.ControlLight;
             btn_22.Enabled = false;
             btn_22.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_22.Location = new Point(535, 455);
@@ -170,10 +176,11 @@
             btn_22.Name = "btn_22";
             btn_22.Size = new Size(103, 120);
             btn_22.TabIndex = 14;
-            btn_22.UseVisualStyleBackColor = true;
+            btn_22.UseVisualStyleBackColor = false;
             // 
             // btn_21
             // 
+            btn_21.BackColor = SystemColors.ControlLight;
             btn_21.Enabled = false;
             btn_21.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_21.Location = new Point(425, 455);
@@ -181,10 +188,11 @@
             btn_21.Name = "btn_21";
             btn_21.Size = new Size(103, 120);
             btn_21.TabIndex = 13;
-            btn_21.UseVisualStyleBackColor = true;
+            btn_21.UseVisualStyleBackColor = false;
             // 
             // btn_20
             // 
+            btn_20.BackColor = SystemColors.ControlLight;
             btn_20.Enabled = false;
             btn_20.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
             btn_20.Location = new Point(315, 455);
@@ -192,7 +200,7 @@
             btn_20.Name = "btn_20";
             btn_20.Size = new Size(103, 120);
             btn_20.TabIndex = 12;
-            btn_20.UseVisualStyleBackColor = true;
+            btn_20.UseVisualStyleBackColor = false;
             // 
             // dataGridView_learderboard
             // 
