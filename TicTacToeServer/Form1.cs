@@ -108,6 +108,7 @@ namespace TicTacToeServer
             isXTurn = true;
             gameIsPending = false;
             InitializeComponent();
+
             initializeButtonMatrix();
             initializeGameBoard();
             updateLeaderBoard();
@@ -265,9 +266,8 @@ namespace TicTacToeServer
         {
             try
             {
-                Byte[] buffer = Encoding.Default.GetBytes(message);
+                Byte[] buffer = Encoding.Default.GetBytes(message + '\0');
                 client.Send(buffer);
-                Thread.Sleep(250);
             }
             catch (Exception e)
             {
@@ -538,9 +538,8 @@ namespace TicTacToeServer
             gameIsPending = false;
             isXTurn = true;
 
-            int k = Math.Min(gameQueue.Count, 2);
 
-            for (int  i = 0; i < k; i++)
+            for (int  i = 0; i < Math.Min(gameQueue.Count, 2); i++)
             {
                 dequeuePlayers();
             }
