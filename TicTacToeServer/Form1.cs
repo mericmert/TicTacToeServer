@@ -36,7 +36,7 @@ namespace TicTacToeServer
         String[,] gameBoard = new String[3, 3];
         List<List<Button>> buttonsMatrix = new List<List<Button>>();
 
-        Player x_player, o_player;
+        Player x_player, o_player ;
 
         public struct Player
         {
@@ -46,7 +46,7 @@ namespace TicTacToeServer
             public int draw;
             public int loss;
             public int points;
-            public Socket socket;
+            public Socket socket; 
             public string IPAddress;
             public string side;
             public bool isReceivedRequest;
@@ -108,14 +108,49 @@ namespace TicTacToeServer
             isXTurn = true;
             gameIsPending = false;
             InitializeComponent();
-            initializeLeaderBoard();
             initializeButtonMatrix();
             initializeGameBoard();
-
-
+            updateLeaderBoard();
         }
 
+ /*       // test silmeyi unutma
+        private void initpss()
+        {
+            Player player1 = new Player
+            {
+                username = "ugur",
+                gamesPlayed = 10,
+                win = 5,
+                draw = 3,
+                loss = 2,
+                points = 18
+            };
 
+            Player player2 = new Player
+            {
+                username = "sevval",
+                gamesPlayed = 8,
+                win = 4,
+                draw = 2,
+                loss = 2,
+                points = 14
+            };
+
+            Player player3 = new Player
+            {
+                username = "koc",
+                gamesPlayed = 8,
+                win = 4,
+                draw = 2,
+                loss = 2,
+                points = 16
+            };
+
+            activePlayers.Add(player1);
+            activePlayers.Add(player2);
+            activePlayers.Add(player3);
+        }
+*/
         private string getClientIPAddress(Socket server)
         {
             IPAddress clientIP = ((IPEndPoint)server.RemoteEndPoint).Address;
@@ -156,39 +191,6 @@ namespace TicTacToeServer
                 }
             }
         }
-
-        void initializeLeaderBoard()
-        {
-            dataGridView_learderboard.RowHeadersVisible = false;
-            dataGridView_learderboard.ColumnCount = 6;
-
-            dataGridView_learderboard.Columns[0].Name = "Name";
-            dataGridView_learderboard.Columns[1].Name = "P";
-            dataGridView_learderboard.Columns[2].Name = "W";
-            dataGridView_learderboard.Columns[3].Name = "D";
-            dataGridView_learderboard.Columns[4].Name = "L";
-            dataGridView_learderboard.Columns[5].Name = "Points";
-
-
-            dataGridView_learderboard.Columns[0].Width = 90;
-            dataGridView_learderboard.Columns[1].Width = 30;
-            dataGridView_learderboard.Columns[2].Width = 30;
-            dataGridView_learderboard.Columns[3].Width = 30;
-            dataGridView_learderboard.Columns[4].Width = 30;
-            dataGridView_learderboard.Columns[5].Width = 60;
-
-            foreach (DataGridViewColumn column in dataGridView_learderboard.Columns)
-            {
-                column.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            }
-
-        }
-
-        void sortLeaderBoardByPoints()
-        {
-            dataGridView_learderboard.Sort(dataGridView_learderboard.Columns["Points"], ListSortDirection.Descending);
-        }
-
 
         void updateServerStatus()
         {
@@ -296,7 +298,7 @@ namespace TicTacToeServer
                 sendBoardStatus(player.socket);
                 sendMessageToClientSocket(clientSocket, $"update:currentplayers:{wrapUsernames()}");
                 sendMessageToClientSocket(clientSocket, $"update:vs:{x_player.username}:{o_player.username}");
-                
+
                 if (isGameNotFinished)
                     sendMessageToClientSocket(clientSocket, $"info:The {x_player.username} and {o_player.username} is playing currently.\n");
 
@@ -465,7 +467,8 @@ namespace TicTacToeServer
             log_textbox.AppendText($"The game between {x_player.username} and {o_player.username} is starting\n");
             currentPlayers_label.Text = $"{x_player.username} vs {o_player.username}";
 
-            x_player.gamesPlayed++; o_player.gamesPlayed++;
+            //x_player.gamesPlayed++; o_player.gamesPlayed++;
+
             isGameNotFinished = true;
             while (isGameNotFinished)
             {
@@ -479,8 +482,10 @@ namespace TicTacToeServer
 
 
                     log_textbox.AppendText($"{x_player.username} (X) has won the game!\n");
-                    x_player.win++;
-                    o_player.loss++;
+                    //x_player.win++;
+                    incrementField(x_player.username, 'W');
+                    //o_player.loss++;
+                    incrementField(o_player.username, 'L');
                     break;
                 }
                 else if (checkDraw())
@@ -490,8 +495,10 @@ namespace TicTacToeServer
                     sendMessageToClientSocket(o_player.socket, $"update:finish:draw{o_player.username}");
 
                     log_textbox.AppendText("Game is Tie!\n");
-                    x_player.draw++;
-                    o_player.draw++;
+                    //x_player.draw++;
+                    incrementField(x_player.username, 'D');
+                    //o_player.draw++;
+                    incrementField(o_player.username, 'D');
                     break;
                 }
                 makeMoveO();
@@ -504,8 +511,10 @@ namespace TicTacToeServer
 
 
                     log_textbox.AppendText($"{o_player.username} (O) has won the game!\n");
-                    o_player.win++;
-                    x_player.loss++;
+                    //o_player.win++;
+                    incrementField(o_player.username, 'W');
+                    //x_player.loss++;
+                    incrementField(x_player.username, 'L');
                     break;
                 }
                 else if (checkDraw())
@@ -515,8 +524,10 @@ namespace TicTacToeServer
                     sendMessageToClientSocket(o_player.socket, $"update:finish:draw:{o_player.username}");
 
                     log_textbox.AppendText("Game is Tie!\n");
-                    x_player.draw++;
-                    o_player.draw++;
+                    //x_player.draw++;
+                    incrementField(x_player.username, 'D');
+                    //o_player.draw++;
+                    incrementField(x_player.username, 'D');
 
                     break;
                 }
@@ -526,7 +537,13 @@ namespace TicTacToeServer
             isGameNotFinished = false;
             gameIsPending = false;
             isXTurn = true;
-            dequeuePlayers();
+
+            int k = Math.Min(gameQueue.Count, 2);
+
+            for (int  i = 0; i < k; i++)
+            {
+                dequeuePlayers();
+            }
         }
 
         void resetGameBoard()
@@ -552,15 +569,62 @@ namespace TicTacToeServer
 
         void updateLeaderBoard()
         {
-            /*mutex.WaitOne();
-            dataGridView_learderboard.Rows.Clear();
-            foreach (Player player in activePlayers)
-            {
-                dataGridView_learderboard.Rows.Add(player.username, player.gamesPlayed, player.win, player.draw, player.loss, player.points);
-            }
-            mutex.ReleaseMutex();*/
+            richTextBox_Leaderboard.Clear();
 
+            string output = "";
+
+            // Print the header
+            output += printTableRow("Username", "P", "W", "D", "L", "Points");
+            output += printTableRow("========", "=", "=", "=", "=", "======");
+
+            if (activePlayers.Count > 0)
+            {
+                List<Player> tempList = activePlayers.ToList();
+                tempList.Sort((p1, p2) => p1.points.CompareTo(p2.points));
+
+                activePlayers.Sort((p1, p2) => p2.points.CompareTo(p1.points));
+
+                // Print player information
+                foreach (var player in activePlayers)
+                {
+                    output += printTableRow(formatTableUsername(player.username), player.gamesPlayed.ToString(), player.win.ToString(), player.draw.ToString(), player.loss.ToString(), player.points.ToString());
+                }
+            }
+
+
+            richTextBox_Leaderboard.AppendText(output);
         }
+
+        private string printTableRow(params string[] columns)
+        {
+            const int columnWidth = 12; // Adjust the column width as needed
+
+            string formattedLine = string.Join("\t", columns.Select(column => string.Format("{0,-" + columnWidth + "}", column)));
+            //richTextBox_Leaderboard.AppendText(formattedLine + "\n");
+
+            return formattedLine + "\n";
+        }
+
+        string formatTableUsername(string name)
+        {
+            int maxlen = 14;
+            int minlen = 4;
+
+            if (name.Length < minlen)
+                return name + "\t";
+
+            if (name.Length == maxlen)
+                return name;
+            else if (name.Length < maxlen)
+            {
+                return name + String.Concat(Enumerable.Repeat(' ', maxlen - name.Length));
+            }
+            else
+            {
+                return name.Substring(0, maxlen - 3) + String.Concat(Enumerable.Repeat('.', 3));
+            }
+        }
+
 
         void sendBoardStatus(Socket clientSocket)
         {
@@ -669,10 +733,7 @@ namespace TicTacToeServer
                             string side = isXTurn ? "X" : "O";
                             isXTurn = !isXTurn;
                             updateGameBoard(row, col, side);
-
                         }
-
-
                     }
                     else if (action == "leave")
                     {
@@ -769,5 +830,47 @@ namespace TicTacToeServer
         {
             log_textbox.Clear();
         }
+
+        private void incrementField(string name, char field)
+        {
+            Player player = activePlayers.Find(p => p.username == name);
+
+            Player player2 = new Player {
+                username = player.username,
+                gamesPlayed = player.gamesPlayed,
+                win = player.win,
+                draw = player.draw,
+                loss = player.loss,
+                points = player.points,
+                socket = player.socket,
+                IPAddress = player.IPAddress,
+                side = player.side,
+                isReceivedRequest = player.isReceivedRequest,
+                isAccept = player.isAccept,
+             };
+
+            player2.gamesPlayed++;
+
+            if (field == 'W')
+            {
+                player2.win++;
+                player2.points += 3;
+            }
+            else if (field == 'L')
+            {
+                player2.loss++;
+            }
+            else if (field == 'D')
+            {
+                player2.draw++;
+                player2.points++;
+            }
+
+            activePlayers.Remove(player);
+            activePlayers.Add(player2);
+
+            updateLeaderBoard();
+        }
+
     }
 }

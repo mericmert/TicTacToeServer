@@ -41,13 +41,12 @@
             btn_22 = new Button();
             btn_21 = new Button();
             btn_20 = new Button();
-            dataGridView_learderboard = new DataGridView();
             leaderBoardLabel = new Label();
             currentPlayers_label = new Label();
             serverlog_label = new Label();
             disconnect_button = new Button();
             clearlogs_btn = new Button();
-            ((System.ComponentModel.ISupportInitialize)dataGridView_learderboard).BeginInit();
+            richTextBox_Leaderboard = new RichTextBox();
             SuspendLayout();
             // 
             // inputBox_port
@@ -202,20 +201,6 @@
             btn_20.TabIndex = 12;
             btn_20.UseVisualStyleBackColor = false;
             // 
-            // dataGridView_learderboard
-            // 
-            dataGridView_learderboard.BackgroundColor = SystemColors.HighlightText;
-            dataGridView_learderboard.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView_learderboard.Location = new Point(315, 36);
-            dataGridView_learderboard.Margin = new Padding(3, 4, 3, 4);
-            dataGridView_learderboard.Name = "dataGridView_learderboard";
-            dataGridView_learderboard.ReadOnly = true;
-            dataGridView_learderboard.RowHeadersWidth = 51;
-            dataGridView_learderboard.RowTemplate.Height = 25;
-            dataGridView_learderboard.ScrollBars = ScrollBars.Vertical;
-            dataGridView_learderboard.Size = new Size(322, 132);
-            dataGridView_learderboard.TabIndex = 15;
-            // 
             // leaderBoardLabel
             // 
             leaderBoardLabel.AutoSize = true;
@@ -277,18 +262,26 @@
             clearlogs_btn.UseVisualStyleBackColor = true;
             clearlogs_btn.Click += clearlogs_btn_Click;
             // 
+            // richTextBox_Leaderboard
+            // 
+            richTextBox_Leaderboard.Location = new Point(14, 610);
+            richTextBox_Leaderboard.Name = "richTextBox_Leaderboard";
+            richTextBox_Leaderboard.Size = new Size(623, 169);
+            richTextBox_Leaderboard.TabIndex = 21;
+            richTextBox_Leaderboard.Text = "";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.Desktop;
-            ClientSize = new Size(649, 591);
+            ClientSize = new Size(648, 801);
+            Controls.Add(richTextBox_Leaderboard);
             Controls.Add(clearlogs_btn);
             Controls.Add(disconnect_button);
             Controls.Add(serverlog_label);
             Controls.Add(currentPlayers_label);
             Controls.Add(leaderBoardLabel);
-            Controls.Add(dataGridView_learderboard);
             Controls.Add(btn_22);
             Controls.Add(btn_21);
             Controls.Add(btn_20);
@@ -307,7 +300,6 @@
             MaximizeBox = false;
             Name = "Form1";
             Text = "TicTacToe Server";
-            ((System.ComponentModel.ISupportInitialize)dataGridView_learderboard).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -327,11 +319,11 @@
         private Button btn_22;
         private Button btn_21;
         private Button btn_20;
-        private DataGridView dataGridView_learderboard;
         private Label leaderBoardLabel;
         private Label currentPlayers_label;
         private Label serverlog_label;
         private Button disconnect_button;
         private Button clearlogs_btn;
+        private RichTextBox richTextBox_Leaderboard;
     }
 }
