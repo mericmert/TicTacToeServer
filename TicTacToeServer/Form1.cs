@@ -36,7 +36,7 @@ namespace TicTacToeServer
         String[,] gameBoard = new String[3, 3];
         List<List<Button>> buttonsMatrix = new List<List<Button>>();
 
-        Player x_player, o_player ;
+        Player x_player, o_player;
 
         public struct Player
         {
@@ -46,7 +46,7 @@ namespace TicTacToeServer
             public int draw;
             public int loss;
             public int points;
-            public Socket socket; 
+            public Socket socket;
             public string IPAddress;
             public string side;
             public bool isReceivedRequest;
@@ -79,6 +79,7 @@ namespace TicTacToeServer
                 this.side = "";
                 this.isReceivedRequest = false;
                 isAccept = false;
+
 
             }
 
@@ -114,44 +115,6 @@ namespace TicTacToeServer
             updateLeaderBoard();
         }
 
- /*       // test silmeyi unutma
-        private void initpss()
-        {
-            Player player1 = new Player
-            {
-                username = "ugur",
-                gamesPlayed = 10,
-                win = 5,
-                draw = 3,
-                loss = 2,
-                points = 18
-            };
-
-            Player player2 = new Player
-            {
-                username = "sevval",
-                gamesPlayed = 8,
-                win = 4,
-                draw = 2,
-                loss = 2,
-                points = 14
-            };
-
-            Player player3 = new Player
-            {
-                username = "koc",
-                gamesPlayed = 8,
-                win = 4,
-                draw = 2,
-                loss = 2,
-                points = 16
-            };
-
-            activePlayers.Add(player1);
-            activePlayers.Add(player2);
-            activePlayers.Add(player3);
-        }
-*/
         private string getClientIPAddress(Socket server)
         {
             IPAddress clientIP = ((IPEndPoint)server.RemoteEndPoint).Address;
@@ -232,18 +195,15 @@ namespace TicTacToeServer
                     {
                         log_textbox.AppendText(clientIPString + " has tried to connect server but server is at maximum capacity!\n");
 
-                        byte[] buffer = Encoding.Default.GetBytes("400:Server is at maximum capacity!");
-                        newClient.Send(buffer);
-                        newClient.Close();
+                        sendMessageToClientSocket(newClient, "400:Server is at maximum capacity!");
                     }
                     else
                     {
                         /*Adding new client socket into client socket queue*/
                         clientSocketArray.Add(newClient);
                         log_textbox.AppendText(clientIPString + " has connected to the server!\n");
-                        byte[] buffer = Encoding.Default.GetBytes("200:Connection is OK!");
-                        newClient.Send(buffer);
 
+                        sendMessageToClientSocket(newClient, "200:Connection is OK!");
 
                         Thread controllerThread = new Thread(() => ClientController(newClient));
                         controllerThread.Start();
@@ -266,8 +226,9 @@ namespace TicTacToeServer
         {
             try
             {
-                Byte[] buffer = Encoding.Default.GetBytes(message + '\0');
+                Byte[] buffer = Encoding.Default.GetBytes(message);
                 client.Send(buffer);
+                Thread.Sleep(150);
             }
             catch (Exception e)
             {
@@ -324,6 +285,22 @@ namespace TicTacToeServer
 
         void handleLeave(Player player)
         {
+            activePlayers.Remove(player);
+
+            string side = "";
+            if (player.username == x_player.username)
+                side = "X";
+            else if (player.username == o_player.username)
+                side = "O";
+            else
+                side = "-";
+
+            sendMessageToAllPlayers($"update:left:{side}:{player.username} has left the game!\n");
+
+            if (side != "-")
+                sendMessageToAllPlayers($"info:Waiting for a player to play as {side}...\n");
+
+            log_textbox.AppendText(player.username + " has left the game!\n");
 
             if (player.username == x_player.username)
             {
@@ -333,9 +310,7 @@ namespace TicTacToeServer
             {
                 o_player = new Player(-1);
             }
-            activePlayers.Remove(player);
-            sendMessageToAllPlayers("info:" + player.username + " has left the game!\n");
-            log_textbox.AppendText(player.username + " has left the game!\n");
+
 
             if (isGameNotFinished) dequeuePlayers();
             updateLeaderBoard();
@@ -539,7 +514,9 @@ namespace TicTacToeServer
             isXTurn = true;
 
 
-            for (int  i = 0; i < Math.Min(gameQueue.Count, 2); i++)
+            int k = Math.Min(gameQueue.Count, 2);
+
+            for (int i = 0; i < k; i++)
             {
                 dequeuePlayers();
             }
@@ -592,6 +569,8 @@ namespace TicTacToeServer
 
 
             richTextBox_Leaderboard.AppendText(output);
+
+            sendMessageToAllPlayers($"update:leaderboard:{output}");
         }
 
         private string printTableRow(params string[] columns)
@@ -627,10 +606,17 @@ namespace TicTacToeServer
 
         void sendBoardStatus(Socket clientSocket)
         {
-            string gameBoardJSON = $"update:board:{JsonConvert.SerializeObject(gameBoard)}";
-            byte[] buffer = Encoding.Default.GetBytes(gameBoardJSON);
-            clientSocket.Send(buffer);
+            string board = "update:board:";
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    board += $"{gameBoard[i,j]},";
+                }
+            }
+            board = board.Substring(0, board.Length - 1);
 
+            sendMessageToClientSocket(clientSocket, board);
         }
 
         void sendBoardStatusToAll()
@@ -702,11 +688,16 @@ namespace TicTacToeServer
                             {
                                 log_textbox.AppendText($"{player.username} (X) is accepted!\n");
                                 x_player.isAccept = true;
+                                if (isXTurn && isGameNotFinished)
+                                    makeMoveX();
+
                             }
                             else if (player.username == o_player.username)
                             {
                                 log_textbox.AppendText($"{player.username} (O) is accepted!\n");
                                 o_player.isAccept = true;
+                                if (!isXTurn && isGameNotFinished)
+                                    makeMoveO();
                             }
 
                             if (x_player.isAccept && o_player.isAccept)
@@ -730,9 +721,13 @@ namespace TicTacToeServer
                             int row = int.Parse(row_col[0]);
                             int col = int.Parse(row_col[1]);
                             string side = isXTurn ? "X" : "O";
+                                                     
                             isXTurn = !isXTurn;
                             updateGameBoard(row, col, side);
                         }
+
+
+
                     }
                     else if (action == "leave")
                     {
@@ -834,7 +829,8 @@ namespace TicTacToeServer
         {
             Player player = activePlayers.Find(p => p.username == name);
 
-            Player player2 = new Player {
+            Player player2 = new Player
+            {
                 username = player.username,
                 gamesPlayed = player.gamesPlayed,
                 win = player.win,
@@ -846,7 +842,7 @@ namespace TicTacToeServer
                 side = player.side,
                 isReceivedRequest = player.isReceivedRequest,
                 isAccept = player.isAccept,
-             };
+            };
 
             player2.gamesPlayed++;
 

@@ -89,7 +89,7 @@
             log_textbox.Margin = new Padding(3, 4, 3, 4);
             log_textbox.Name = "log_textbox";
             log_textbox.ReadOnly = true;
-            log_textbox.Size = new Size(284, 340);
+            log_textbox.Size = new Size(284, 461);
             log_textbox.TabIndex = 3;
             log_textbox.Text = "";
             // 
@@ -98,7 +98,7 @@
             btn_00.BackColor = SystemColors.ControlLight;
             btn_00.Enabled = false;
             btn_00.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_00.Location = new Point(315, 199);
+            btn_00.Location = new Point(407, 263);
             btn_00.Margin = new Padding(3, 4, 3, 4);
             btn_00.Name = "btn_00";
             btn_00.Size = new Size(103, 120);
@@ -110,7 +110,7 @@
             btn_01.BackColor = SystemColors.ControlLight;
             btn_01.Enabled = false;
             btn_01.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_01.Location = new Point(425, 199);
+            btn_01.Location = new Point(517, 263);
             btn_01.Margin = new Padding(3, 4, 3, 4);
             btn_01.Name = "btn_01";
             btn_01.Size = new Size(103, 120);
@@ -122,7 +122,7 @@
             btn_02.BackColor = SystemColors.ControlLight;
             btn_02.Enabled = false;
             btn_02.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_02.Location = new Point(535, 199);
+            btn_02.Location = new Point(627, 263);
             btn_02.Margin = new Padding(3, 4, 3, 4);
             btn_02.Name = "btn_02";
             btn_02.Size = new Size(103, 120);
@@ -134,7 +134,7 @@
             btn_12.BackColor = SystemColors.ControlLight;
             btn_12.Enabled = false;
             btn_12.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_12.Location = new Point(535, 327);
+            btn_12.Location = new Point(627, 391);
             btn_12.Margin = new Padding(3, 4, 3, 4);
             btn_12.Name = "btn_12";
             btn_12.Size = new Size(103, 120);
@@ -146,7 +146,7 @@
             btn_11.BackColor = SystemColors.ControlLight;
             btn_11.Enabled = false;
             btn_11.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_11.Location = new Point(425, 327);
+            btn_11.Location = new Point(517, 391);
             btn_11.Margin = new Padding(3, 4, 3, 4);
             btn_11.Name = "btn_11";
             btn_11.Size = new Size(103, 120);
@@ -158,7 +158,7 @@
             btn_10.BackColor = SystemColors.ControlLight;
             btn_10.Enabled = false;
             btn_10.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_10.Location = new Point(315, 327);
+            btn_10.Location = new Point(407, 391);
             btn_10.Margin = new Padding(3, 4, 3, 4);
             btn_10.Name = "btn_10";
             btn_10.Size = new Size(103, 120);
@@ -170,7 +170,7 @@
             btn_22.BackColor = SystemColors.ControlLight;
             btn_22.Enabled = false;
             btn_22.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_22.Location = new Point(535, 455);
+            btn_22.Location = new Point(627, 519);
             btn_22.Margin = new Padding(3, 4, 3, 4);
             btn_22.Name = "btn_22";
             btn_22.Size = new Size(103, 120);
@@ -182,7 +182,7 @@
             btn_21.BackColor = SystemColors.ControlLight;
             btn_21.Enabled = false;
             btn_21.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_21.Location = new Point(425, 455);
+            btn_21.Location = new Point(517, 519);
             btn_21.Margin = new Padding(3, 4, 3, 4);
             btn_21.Name = "btn_21";
             btn_21.Size = new Size(103, 120);
@@ -194,7 +194,7 @@
             btn_20.BackColor = SystemColors.ControlLight;
             btn_20.Enabled = false;
             btn_20.Font = new Font("Segoe UI", 27F, FontStyle.Bold, GraphicsUnit.Point);
-            btn_20.Location = new Point(315, 455);
+            btn_20.Location = new Point(407, 519);
             btn_20.Margin = new Padding(3, 4, 3, 4);
             btn_20.Name = "btn_20";
             btn_20.Size = new Size(103, 120);
@@ -218,7 +218,7 @@
             currentPlayers_label.BackColor = SystemColors.Desktop;
             currentPlayers_label.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point);
             currentPlayers_label.ForeColor = SystemColors.Control;
-            currentPlayers_label.Location = new Point(315, 172);
+            currentPlayers_label.Location = new Point(407, 236);
             currentPlayers_label.Name = "currentPlayers_label";
             currentPlayers_label.Size = new Size(322, 23);
             currentPlayers_label.TabIndex = 17;
@@ -253,10 +253,10 @@
             // 
             // clearlogs_btn
             // 
-            clearlogs_btn.Location = new Point(14, 521);
+            clearlogs_btn.Location = new Point(14, 641);
             clearlogs_btn.Margin = new Padding(3, 4, 3, 4);
             clearlogs_btn.Name = "clearlogs_btn";
-            clearlogs_btn.Size = new Size(155, 35);
+            clearlogs_btn.Size = new Size(284, 35);
             clearlogs_btn.TabIndex = 20;
             clearlogs_btn.Text = "Clear Logs";
             clearlogs_btn.UseVisualStyleBackColor = true;
@@ -264,9 +264,9 @@
             // 
             // richTextBox_Leaderboard
             // 
-            richTextBox_Leaderboard.Location = new Point(14, 610);
+            richTextBox_Leaderboard.Location = new Point(315, 49);
             richTextBox_Leaderboard.Name = "richTextBox_Leaderboard";
-            richTextBox_Leaderboard.Size = new Size(623, 169);
+            richTextBox_Leaderboard.Size = new Size(472, 169);
             richTextBox_Leaderboard.TabIndex = 21;
             richTextBox_Leaderboard.Text = "";
             // 
@@ -275,7 +275,7 @@
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.Desktop;
-            ClientSize = new Size(648, 801);
+            ClientSize = new Size(819, 684);
             Controls.Add(richTextBox_Leaderboard);
             Controls.Add(clearlogs_btn);
             Controls.Add(disconnect_button);
