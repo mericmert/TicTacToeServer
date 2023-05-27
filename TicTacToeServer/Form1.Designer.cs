@@ -302,7 +302,9 @@
             Controls.Add(listen_button);
             Controls.Add(port_label);
             Controls.Add(inputBox_port);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
             Margin = new Padding(3, 4, 3, 4);
+            MaximizeBox = false;
             Name = "Form1";
             Text = "TicTacToe Server";
             ((System.ComponentModel.ISupportInitialize)dataGridView_learderboard).EndInit();

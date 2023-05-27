@@ -11,6 +11,7 @@ using static TicTacToeServer.Form1;
 using Newtonsoft.Json;
 using System.Xml.Linq;
 using System.Drawing.Imaging;
+using System.Windows.Forms;
 
 namespace TicTacToeServer
 {
@@ -288,17 +289,35 @@ namespace TicTacToeServer
             {
                 Player player = new Player(username, clientSocket);
                 activePlayers.Add(player);
-                sendMessageToClientSocket(clientSocket, "201:You are succesfully joined the game!\n");
-                sendMessageToAllPlayers("info:" + username + " has joined the game!\n");
-                log_textbox.AppendText(username + " has joined the game!\n");
+                sendMessageToClientSocket(clientSocket, "201:You have succesfully joined the game room!\n");
+                sendMessageToAllPlayers($"update:newplayer:{username}");
+                log_textbox.AppendText(username + " has joined the game room!\n");
                 updateLeaderBoard();
                 sendBoardStatus(player.socket);
+                sendMessageToClientSocket(clientSocket, $"update:currentplayers:{wrapUsernames()}");
+                sendMessageToClientSocket(clientSocket, $"update:vs:{x_player.username}:{o_player.username}");
+                
+                if (isGameNotFinished)
+                    sendMessageToClientSocket(clientSocket, $"info:The {x_player.username} and {o_player.username} is playing currently.\n");
+
             }
             else
             {
                 sendMessageToClientSocket(clientSocket, "401:Username is already taken!\n");
                 log_textbox.AppendText(getClientIPAddress(clientSocket) + " has tried to take a username that is already exist!\n");
             }
+        }
+
+        string wrapUsernames()
+        {
+            string msg = "";
+            for (int i = 0; i < activePlayers.Count; i++)
+            {
+                msg += activePlayers[i].username;
+                if (i < activePlayers.Count - 1)
+                    msg += ",";
+            }
+            return msg;
         }
 
         void handleLeave(Player player)
@@ -339,13 +358,13 @@ namespace TicTacToeServer
 
                     if (!x_player.isReceivedRequest)
                     {
-                        sendMessageToClientSocket(x_player.socket, "startreq:X:Are you ready to play as an X?\n");
+                        sendMessageToClientSocket(x_player.socket, "startreq:X:Are you ready to play as X?\n");
                         x_player.isReceivedRequest = true;
                         log_textbox.AppendText("Server sent a game request to " + x_player.username + "\n");
                     }
                     if (!o_player.isReceivedRequest)
                     {
-                        sendMessageToClientSocket(o_player.socket, "startreq:O:Are you ready to play as an O?\n");
+                        sendMessageToClientSocket(o_player.socket, "startreq:O:Are you ready to play as O?\n");
                         o_player.isReceivedRequest = true;
                         log_textbox.AppendText("Server sent a game request to " + o_player.username + "\n");
                     }
